@@ -55,3 +55,17 @@ response.items.each do |event|
   start = event.start.date || event.start.date_time
   puts "- #{event.summary} (#{start})"
 end
+
+item = Google::Apis::CalendarV3::FreeBusyRequestItem.new(id: "YOUR_CALENDAR_ID")
+free_busy_request = Google::Apis::CalendarV3::FreeBusyRequest.new(
+  time_min: DateTime.new(2021, 10, 16, 00, 0, 0),
+  time_max: DateTime.new(2021, 10, 17, 00, 0, 0),
+  items: [item],
+  time_zone: "UTC+9"
+)
+
+service.query_freebusy(free_busy_request)do |result , err|
+  result.calendars.each do |c|
+    puts c.inspect
+  end
+end
