@@ -56,16 +56,51 @@ response.items.each do |event|
   puts "- #{event.summary} (#{start})"
 end
 
-item = Google::Apis::CalendarV3::FreeBusyRequestItem.new(id: "YOUR_CALENDAR_ID")
+
+require 'dotenv'
+Dotenv.load
+
+require 'byebug'
+
+item = Google::Apis::CalendarV3::FreeBusyRequestItem.new(id: ENV['CALENDAR_ID'])
 free_busy_request = Google::Apis::CalendarV3::FreeBusyRequest.new(
-  time_min: DateTime.new(2021, 10, 16, 00, 0, 0),
-  time_max: DateTime.new(2021, 10, 17, 00, 0, 0),
+  calendar_expansion_max: 50,
+  time_min: DateTime.new(2021, 10, 17, 00, 0, 0),
+  time_max: DateTime.new(2021, 10, 18, 00, 0, 0),
   items: [item],
   time_zone: "UTC+9"
 )
 
-service.query_freebusy(free_busy_request)do |result , err|
-  result.calendars.each do |c|
-    puts c.inspect
+response = service.query_freebusy(free_busy_request)
+calendars = response.calendars
+busy_list = calendars[ENV['CALENDAR_ID']].busy
+
+start_work_time = Time.new(2021, 10, 17, 12, 0, 0)
+end_work_time = Time.new(2021, 10, 17, 18, 0, 0)
+
+free = start_work_time.to_i.step(end_work_time.to_i, 60*60).map do |t|
+  time = Time.at(t)
+  is_busy = false
+  busy_list.each do |busy|
+    busy_start = busy.start
+    end_start = busy.end
+
+    # puts "----------------------"
+    # puts "busy_start : #{busy_start.strftime("%Y/%m/%d %H:%M:%S")}"
+    # puts "end_start : #{end_start.strftime("%Y/%m/%d %H:%M:%S")}"
+    # puts "current_time : #{time.strftime("%Y/%m/%d %H:%M:%S")}"
+
+    if busy_start <= time.to_datetime && time.to_datetime < end_start
+      is_busy = true
+      break
+    end
+  end
+
+  unless is_busy
+    time.strftime("%Y/%m/%d %H:%M")
   end
 end
+
+puts "Free time:"
+puts free.compact
+
