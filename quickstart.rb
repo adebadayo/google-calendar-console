@@ -75,32 +75,38 @@ response = service.query_freebusy(free_busy_request)
 calendars = response.calendars
 busy_list = calendars[ENV['CALENDAR_ID']].busy
 
-start_work_time = Time.new(2021, 10, 17, 12, 0, 0)
-end_work_time = Time.new(2021, 10, 17, 18, 0, 0)
+# 1週間先まで空き時間を検索
+start_date = Date.today
+end_date = start_date.next_day(7)
 
-free = start_work_time.to_i.step(end_work_time.to_i, 60*60).map do |t|
-  time = Time.at(t)
-  is_busy = false
-  busy_list.each do |busy|
-    busy_start = busy.start
-    end_start = busy.end
+# 空き時間を検索する時間の範囲
+start_hour = 9
+end_hour = 20
 
-    # puts "----------------------"
-    # puts "busy_start : #{busy_start.strftime("%Y/%m/%d %H:%M:%S")}"
-    # puts "end_start : #{end_start.strftime("%Y/%m/%d %H:%M:%S")}"
-    # puts "current_time : #{time.strftime("%Y/%m/%d %H:%M:%S")}"
+free = []
+(start_date..end_date).each do |date|
+  start_work_time = Time.new(date.year, date.month, date.day, start_hour, 0, 0)
+  end_work_time = Time.new(date.year, date.month, date.day, end_hour, 0, 0)
 
-    if busy_start <= time.to_datetime && time.to_datetime < end_start
-      is_busy = true
-      break
+  start_work_time.to_i.step(end_work_time.to_i, 60*60).map do |t|
+    time = Time.at(t)
+    is_busy = false
+    busy_list.each do |busy|
+      busy_start = busy.start
+      end_start = busy.end
+
+      if busy_start <= time.to_datetime && time.to_datetime < end_start
+        is_busy = true
+        break
+      end
     end
-  end
 
-  unless is_busy
-    time.strftime("%Y/%m/%d %H:%M")
+    unless is_busy
+      free << time.strftime("%Y/%m/%d %H:%M")
+    end
   end
 end
 
 puts "Free time:"
-puts free.compact
+puts free
 
