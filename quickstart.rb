@@ -86,12 +86,16 @@ end_hour = 20
 
 puts "Free time:"
 
+result = {}
 (start_date..end_date).each do |date|
-  puts "-----#{date.strftime("%Y/%m/%d")}-----"
+  result[date] ||= {}
 
   start_work_time = Time.new(date.year, date.month, date.day, start_hour, 0, 0)
   end_work_time = Time.new(date.year, date.month, date.day, end_hour, 0, 0)
 
+
+  free = []
+  busy = []
   start_work_time.to_i.step(end_work_time.to_i, 60*60).map do |t|
     time = Time.at(t)
     is_busy = false
@@ -105,10 +109,24 @@ puts "Free time:"
       end
     end
 
-    unless is_busy
-      puts time.strftime("%Y/%m/%d %H:%M")
+    if is_busy
+      busy << time
+    else
+      free << time
     end
   end
+
+  result[date][:free] = free
+  result[date][:busy] = busy
 end
 
 
+# 出力
+result.each do |date, info|
+  data_s = date.strftime("%Y/%m/%d")
+  puts "-----#{data_s}-----"
+
+  info[:free].each do |free|
+    puts "#{date.strftime("%Y/%m/%d")} #{free.strftime("%H:%M")} "
+  end
+end
