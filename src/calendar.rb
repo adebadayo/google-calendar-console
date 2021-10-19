@@ -1,3 +1,6 @@
+require 'dotenv'
+Dotenv.load
+
 # Initialize the API
 service = Google::Apis::CalendarV3::CalendarService.new
 service.client_options.application_name = APPLICATION_NAME
@@ -18,10 +21,6 @@ response.items.each do |event|
 end
 
 
-require 'dotenv'
-Dotenv.load
-
-require 'byebug'
 
 
 # 1週間先まで空き時間を検索
