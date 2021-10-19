@@ -53,22 +53,25 @@ result = {}
   start_work_time = Time.new(date.year, date.month, date.day, start_hour, 0, 0)
   end_work_time = Time.new(date.year, date.month, date.day, end_hour, 0, 0)
   
-  start_work_time.to_i.step(end_work_time.to_i, 60*60).map do |t|
-    time = Time.at(t)
+  start_work_time.to_i.step(end_work_time.to_i, 60*60).each_cons(2) do |c_time_int, n_time__int|
+    current_time = Time.at(c_time_int)
+    next_time = Time.at(n_time__int)
     free = true
-    result[date][time] = {}
+    result[date][current_time] = {}
 
     busy_list.each do |busy|
       busy_start = busy.start
-      end_start = busy.end
+      busy_end = busy.end
+      current_datetime = current_time.to_datetime
+      next_datetime = next_time.to_datetime
 
-      if busy_start <= time.to_datetime && time.to_datetime < end_start
+      if current_datetime < busy_end && busy_start < next_datetime
         free = false
         break
       end
     end
 
-    result[date][time][:free] = free
+    result[date][current_time][:free] = free
   end
 end
 
@@ -79,15 +82,18 @@ result.each do |date, times|
   spans = []
   times.each do |time, info|
     min_time ||= time
+    max_time = time
     if info[:free]
-      max_time = time
+      next
     else
-      spans << "#{min_time.strftime("%-H:%M")}-#{max_time.strftime("%-H:%M")}"
+      if min_time && max_time && min_time < max_time
+        spans << "#{min_time.strftime("%-H:%M")}-#{max_time.strftime("%-H:%M")}"
+      end
       min_time = max_time = nil
     end
   end
 
-  if min_time && max_time
+  if min_time && max_time && min_time < max_time
     spans << "#{min_time.strftime("%-H:%M")}-#{max_time.strftime("%-H:%M")}"
   end
   puts "#{date.strftime("%Y/%m/%d")} #{spans.join(", ")}"
