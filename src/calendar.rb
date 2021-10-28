@@ -25,7 +25,6 @@ response.items.each do |event|
   # start endが両方ともdate型の場合は終日の予定
   is_all_date = (event.start.date && event.end.date)
 
-
   description =
     if is_all_date
       "#{start_date.strftime("%Y/%m/%d")} 終日"
@@ -46,22 +45,6 @@ response.items.each do |event|
     }
   end
 end
-
-# 1週間先まで空き時間を検索
-start_date = Date.today
-end_date = start_date.next_day(7)
-
-item = Google::Apis::CalendarV3::FreeBusyRequestItem.new(id: ENV['CALENDAR_ID'])
-free_busy_request = Google::Apis::CalendarV3::FreeBusyRequest.new(
-  calendar_expansion_max: 50,
-  time_min: DateTime.new(start_date.year, start_date.month, start_date.day, 00, 0, 0),
-  time_max: DateTime.new(end_date.year, end_date.month, end_date.day, 00, 0, 0),
-  items: [item],
-  time_zone: "UTC+9"
-)
-
-# calendars = service.query_freebusy(free_busy_request).calendars
-# busy_list = calendars[ENV['CALENDAR_ID']].busy
 
 # 空き時間を検索する時間の範囲
 start_hour = 9
