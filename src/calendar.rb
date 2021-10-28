@@ -1,3 +1,4 @@
+require 'byebug'
 require 'dotenv'
 Dotenv.load
 
@@ -9,19 +10,42 @@ service.authorization = authorize
 # Fetch the next 10 events for the user
 calendar_id = "primary"
 response = service.list_events(calendar_id,
-                               max_results:   10,
                                single_events: true,
                                order_by:      "startTime",
-                               time_min:      DateTime.now.rfc3339)
+                               time_min:      DateTime.now.rfc3339,
+                               time_max:      DateTime.now.next_day(7).rfc3339
+)
 puts "Upcoming events:"
 puts "No upcoming events found" if response.items.empty?
+busy_list = []
 response.items.each do |event|
-  start = event.start.date || event.start.date_time
-  puts "- #{event.summary} (#{start})"
+  start_date = event.start.date || event.start.date_time
+  end_date = event.end.date || event.end.date_time
+
+  # start endが両方ともdate型の場合は終日の予定
+  is_all_date = (event.start.date && event.end.date)
+
+
+  description =
+    if is_all_date
+      "#{start_date.strftime("%Y/%m/%d")} 終日"
+    else
+      if start_date.to_date == end_date.to_date
+        "#{start_date.strftime("%Y/%m/%d %-H:%M")}-#{end_date.strftime("%-H:%M")}"
+      else
+        "#{start_date.strftime("%Y/%m/%d %-H:%M")}-#{end_date.strftime("%Y/%m/%d %-H:%M")}"
+      end
+    end
+
+  puts "- [#{description}] #{event.summary} "
+
+  if !is_all_date
+    busy_list << {
+      start: event.start.date_time,
+      end: event.end.date_time
+    }
+  end
 end
-
-
-
 
 # 1週間先まで空き時間を検索
 start_date = Date.today
@@ -36,9 +60,8 @@ free_busy_request = Google::Apis::CalendarV3::FreeBusyRequest.new(
   time_zone: "UTC+9"
 )
 
-response = service.query_freebusy(free_busy_request)
-calendars = response.calendars
-busy_list = calendars[ENV['CALENDAR_ID']].busy
+# calendars = service.query_freebusy(free_busy_request).calendars
+# busy_list = calendars[ENV['CALENDAR_ID']].busy
 
 # 空き時間を検索する時間の範囲
 start_hour = 9
@@ -56,12 +79,16 @@ result = {}
   start_work_time.to_i.step(end_work_time.to_i, 60*60).each_cons(2) do |c_time_int, n_time__int|
     current_time = Time.at(c_time_int)
     next_time = Time.at(n_time__int)
+
+    # 現時刻より前はスキップ
+    next if current_time.to_datetime < DateTime.now
+
     free = true
     result[date][current_time] = {}
 
     busy_list.each do |busy|
-      busy_start = busy.start
-      busy_end = busy.end
+      busy_start = busy[:start]
+      busy_end = busy[:end]
       current_datetime = current_time.to_datetime
       next_datetime = next_time.to_datetime
 
@@ -75,7 +102,7 @@ result = {}
   end
 end
 
-
+wdays = %w(日 月 火 水 木 金 土)
 # 出力
 result.each do |date, times|
   min_time = max_time = nil
@@ -96,5 +123,6 @@ result.each do |date, times|
   if min_time && max_time && min_time < max_time
     spans << "#{min_time.strftime("%-H:%M")}-#{max_time.strftime("%-H:%M")}"
   end
-  puts "#{date.strftime("%Y/%m/%d")} #{spans.join(", ")}"
+
+  puts "#{date.strftime("%Y/%m/%d")}(#{wdays[date.wday]}) #{spans.join(", ")}"
 end
