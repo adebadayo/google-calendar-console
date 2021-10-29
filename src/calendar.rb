@@ -7,32 +7,34 @@ service = Google::Apis::CalendarV3::CalendarService.new
 service.client_options.application_name = APPLICATION_NAME
 service.authorization = authorize
 
+start_date = DateTime.now
+end_date = DateTime.now.next_day(7)
 # Fetch the next 10 events for the user
 calendar_id = "primary"
 response = service.list_events(calendar_id,
                                single_events: true,
-                               order_by:      "startTime",
-                               time_min:      DateTime.now.rfc3339,
-                               time_max:      DateTime.now.next_day(7).rfc3339
+                               order_by: "startTime",
+                               time_min: start_date.rfc3339,
+                               time_max: end_date.rfc3339
 )
 puts "Upcoming events:"
 puts "No upcoming events found" if response.items.empty?
 busy_list = []
 response.items.each do |event|
-  start_date = event.start.date || event.start.date_time
-  end_date = event.end.date || event.end.date_time
+  start_date_time = event.start.date || event.start.date_time
+  end_date_time = event.end.date || event.end.date_time
 
   # start endが両方ともdate型の場合は終日の予定
   is_all_date = (event.start.date && event.end.date)
 
   description =
     if is_all_date
-      "#{start_date.strftime("%Y/%m/%d")} 終日"
+      "#{start_date_time.strftime("%Y/%m/%d")} 終日"
     else
-      if start_date.to_date == end_date.to_date
-        "#{start_date.strftime("%Y/%m/%d %-H:%M")}-#{end_date.strftime("%-H:%M")}"
+      if start_date_time.to_date == end_date_time.to_date
+        "#{start_date_time.strftime("%Y/%m/%d %-H:%M")}-#{end_date_time.strftime("%-H:%M")}"
       else
-        "#{start_date.strftime("%Y/%m/%d %-H:%M")}-#{end_date.strftime("%Y/%m/%d %-H:%M")}"
+        "#{start_date_time.strftime("%Y/%m/%d %-H:%M")}-#{end_date_time.strftime("%Y/%m/%d %-H:%M")}"
       end
     end
 
@@ -48,12 +50,12 @@ end
 
 # 空き時間を検索する時間の範囲
 start_hour = 9
-end_hour = 20
+end_hour = 21
 
 puts "Free time:"
 
 result = {}
-(start_date..end_date).each do |date|
+(start_date.to_date..end_date.to_date).each do |date|
   result[date] ||= {}
 
   start_work_time = Time.new(date.year, date.month, date.day, start_hour, 0, 0)
