@@ -7,6 +7,6 @@ class CalendarTest < Minitest::Test
   end
 
   def test_calendar_list
-    @calendar.list
+    @calendar.stdout
   end
 end
