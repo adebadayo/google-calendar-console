@@ -90,7 +90,11 @@ class Calendar
         result[date][current_time][:free] = free
       end
     end
+    result
+  end
 
+  def stdout
+    result = list
     wdays = %w(日 月 火 水 木 金 土)
     # 出力
     result.each do |date, times|
